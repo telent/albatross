@@ -1,0 +1,5 @@
+apt-get install git ruby ruby-dev libsdl-dev
+gem install bundler
+bundle install
+
+various changes to /boot/config.txt and ../cmdline.txt
