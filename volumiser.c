@@ -2,17 +2,14 @@
 #include <stdlib.h>
 #include <alsa/asoundlib.h>
 
-/* 4 bytes/sample
- * 8000 samples/sec
- * 32000 bytes/sec
- * 32000/128
- */
 int main (int argc, char *argv[])
 {
-  int i;
+  int i, j;
   int err;
   unsigned int sample_rate = 48000;
+  unsigned long frames;
   short * buf;
+  short min, max, amp=0;
   snd_pcm_t *capture_handle;
   snd_pcm_hw_params_t *hw_params;
   /*  int bufsize = 2 * (16/8) * 44100 * 1;  */
@@ -83,16 +80,31 @@ int main (int argc, char *argv[])
     exit (1);
   }
   fprintf(stderr, "line %d\n", __LINE__);
-  for (i = 0; i < 2000; ++i) {
-    if ((err = snd_pcm_readi (capture_handle, buf, bufsize)) != bufsize) {
+  err = 0;
+  while(frames >= 0) {
+    min = 32767;
+    max = -32768;
+    if ((frames = snd_pcm_readi (capture_handle, buf, bufsize)) != bufsize) {
       fprintf (stderr, "read from audio interface failed (%s)\n",
-               snd_strerror (err));
-      exit (1);
+               snd_strerror (frames));
+    } else {
+      for(j = 0; j < bufsize; j++) {
+        short val = buf[j];
+        if(val > max) max = val;
+        if(val < min) min = val;
+      }
+#define SMOOTH (2<<4)
+      amp = (SMOOTH-1)*(amp/SMOOTH) + (max-min)/SMOOTH;
+      if((i % 100) == 0) {
+        fprintf(stderr, " hey %*s\n", (max-min), amp/500, "*");
+        i=1;
+      } else {
+        i++;
+      }
     }
-    (void) write(1, buf, bufsize * 2 * (sizeof (short)));
   }
 
-  fprintf(stderr, "line %d\n", __LINE__);
+  fprintf(stderr, "line %d err %d\n", __LINE__, err);
   free(buf);
   snd_pcm_close (capture_handle);
   exit (0);
