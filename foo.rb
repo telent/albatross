@@ -100,6 +100,7 @@ end
 
 # X range is approximately 300 - 3500, smaller numbers are away from me
 # (when antenna on left)
+cf.commander.send_setpoint(0, 0, 0, 0)
 
 read_events(touch) do |e|
   #  warn e
